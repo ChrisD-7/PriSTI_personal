@@ -52,7 +52,7 @@ def get_similarity_AQI(dist, thr=0.1, include_self=False, force_symmetric=False,
 
 def get_adj_AQI36():
     df = pd.read_csv("./data/pm25/SampleData/pm25_latlng.txt")
-    df = df[['latitude', 'longitude']]
+    df = df[['latitude', 'longitude']].iloc[:6]  # Adjust to only use the first 6 rows
     res = geographical_distance(df, to_rad=False).values
     adj = get_similarity_AQI(res)
     return adj

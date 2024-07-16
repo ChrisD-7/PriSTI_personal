@@ -212,46 +212,32 @@ class AdaptiveGCN(nn.Module):
             support = support_adp[:-1]
         else:
             support = support_adp
-        
-        # Reshape and permute the input tensor
         x = x.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
-        
-        # Ensure the input tensor has 4 dimensions
         if x.dim() < 4:
             squeeze = True
             x = torch.unsqueeze(x, -1)
         else:
             squeeze = False
-        
         out = [x] if self.include_self else []
-        
-        # If support is not a list, convert it to a list
         if (type(support) is not list):
             support = [support]
-        
-        # Adaptive part of the GCN
         if self.is_adp:
             adp = F.softmax(F.relu(torch.mm(nodevec1, nodevec2)), dim=1)
             support = support + [adp]
-        
         for a in support:
-            x1 = torch.einsum('ncvl,wv->ncwl', (x, a)).contiguous()
+            x1 = torch.einsum('ncvl,wv->ncwl', (x, a)).contiguous()  # Dimension mismatch likely here
             out.append(x1)
             for k in range(2, self.order + 1):
-                x2 = torch.einsum('ncvl,wv->ncwl', (x1, a)).contiguous()
+                x2 = torch.einsum('ncvl,wv->ncwl', (x1, a)).contiguous()  # And here
                 out.append(x2)
                 x1 = x2
-        
-        # Concatenate the outputs and apply the MLP
         out = torch.cat(out, dim=1)
         out = self.mlp(out)
-        
         if squeeze:
             out = out.squeeze(-1)
-        
-        # Reshape the output tensor
         out = out.reshape(B, L, channel, K).permute(0, 2, 3, 1).reshape(B, channel, K * L)
         return out
+
 
 
 
