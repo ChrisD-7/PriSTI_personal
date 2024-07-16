@@ -209,7 +209,7 @@ class PriSTI(nn.Module):
 
 
 class PriSTI_aqi36(PriSTI):
-    def __init__(self, config, device, target_dim=36, seq_len=36):
+    def __init__(self, config, device, target_dim=6, seq_len=36):
         super(PriSTI_aqi36, self).__init__(target_dim, seq_len, config, device)
         self.config = config
 

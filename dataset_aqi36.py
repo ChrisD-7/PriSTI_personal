@@ -8,7 +8,7 @@ from utils import get_randmask, get_hist_mask
 
 
 class AQI36_Dataset(Dataset):
-    def __init__(self, eval_length=36, target_dim=36, mode="train", val_len=0.1, is_interpolate=False,
+    def __init__(self, eval_length=36, target_dim=6, mode="train", val_len=0.1, is_interpolate=False,
                  target_strategy='hybrid', mask_sensor=None, missing_ratio=None):
         self.eval_length = eval_length
         self.target_dim = target_dim
@@ -18,7 +18,7 @@ class AQI36_Dataset(Dataset):
         self.missing_ratio = missing_ratio
         self.mask_sensor = mask_sensor
 
-        path = "./data/pm25/pm25_meanstd.pk"
+        path = "./data/pm25/pm25_meanstd_6cols.pk"
         with open(path, "rb") as f:
             self.train_mean, self.train_std = pickle.load(f)
         if mode == "train":
@@ -42,12 +42,12 @@ class AQI36_Dataset(Dataset):
         self.cut_length = []  # excluded from evaluation targets
 
         df = pd.read_csv(
-            "./data/pm25/SampleData/pm25_ground.txt",
+            "./data/pm25/SampleData/pm25_ground_6cols.txt",
             index_col="datetime",
             parse_dates=True,
         )
         df_gt = pd.read_csv(
-            "./data/pm25/SampleData/pm25_missing.txt",
+            "./data/pm25/SampleData/pm25_missing_6cols.txt",
             index_col="datetime",
             parse_dates=True,
         )
