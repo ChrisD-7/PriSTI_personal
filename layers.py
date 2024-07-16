@@ -163,7 +163,7 @@ class AdaptiveGCN(nn.Module):
             out = out.squeeze(-1)
         out = out.reshape(B, L, channel, K).permute(0, 2, 3, 1).reshape(B, channel, K * L)
         return out
-
+'''
 
 class TemporalLearning(nn.Module):
     def __init__(self, channels, nheads, is_cross=True):
@@ -186,7 +186,7 @@ class TemporalLearning(nn.Module):
             y = self.time_layer(v, v, v).permute(1, 2, 0)
         y = y.reshape(B, K, channel, L).permute(0, 2, 1, 3).reshape(B, channel, K * L)
         return y
-'''
+
 class AdaptiveGCN(nn.Module):
     def __init__(self, channels, order=2, include_self=True, device=None, is_adp=True, adj_file=None):
         super().__init__()
