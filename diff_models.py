@@ -2,7 +2,7 @@ from layers import *
 
 
 class Guide_diff(nn.Module):
-    def __init__(self, config, inputdim=1, target_dim=36, is_itp=False):
+    def __init__(self, config, inputdim=1, target_dim=6, is_itp=False):
         super().__init__()
         self.channels = config["channels"]
         self.is_itp = is_itp

@@ -8,7 +8,7 @@ from utils import get_randmask, get_hist_mask
 
 
 class AQI36_Dataset(Dataset):
-    def __init__(self, eval_length=36, target_dim=6, mode="train", val_len=0.1, is_interpolate=False,
+    def __init__(self, eval_length=6, target_dim=6, mode="train", val_len=0.1, is_interpolate=False,
                  target_strategy='hybrid', mask_sensor=None, missing_ratio=None):
         self.eval_length = eval_length
         self.target_dim = target_dim
