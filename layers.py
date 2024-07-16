@@ -204,11 +204,20 @@ class SpaDependLearning(nn.Module):
     def __init__(self, channels, nheads, target_dim, order, include_self, device, is_adp, adj_file, proj_t, is_cross=True):
         super().__init__()
         self.is_cross = is_cross
+        
+        # Initialize AdaptiveGCN with updated parameters
         self.GCN = AdaptiveGCN(channels, order=order, include_self=include_self, device=device, is_adp=is_adp, adj_file=adj_file)
-        self.attn = Attn_spa(dim=channels, seq_len=target_dim, k=proj_t, heads=nheads)
-        self.cond_proj = Conv1d_with_init(2 * channels, channels, 1)
+        
+        # Attn_spa is initialized with the updated target_dim (should be 6)
+        self.attn_s = Attn_spa(dim=channels, seq_len=target_dim, k=proj_t, heads=nheads)
+        self.attn_t = Attn_tem(heads=nheads, layers=1, channels=channels)
+        
+        # Normalization layers
         self.norm1_local = nn.GroupNorm(4, channels)
-        self.norm1_attn = nn.GroupNorm(4, channels)
+        self.norm1_attn_s = nn.GroupNorm(4, channels)
+        self.norm1_attn_t = nn.GroupNorm(4, channels)
+        
+        # Fully connected layers
         self.ff_linear1 = nn.Linear(channels, channels * 2)
         self.ff_linear2 = nn.Linear(channels * 2, channels)
         self.norm2 = nn.GroupNorm(4, channels)
@@ -217,27 +226,35 @@ class SpaDependLearning(nn.Module):
         B, channel, K, L = base_shape
         y_in1 = y
 
-        y_local = self.GCN(y, base_shape, support)       # [B, C, K*L]
+        # Perform GCN operation
+        y_local = self.GCN(y, base_shape, support)
         y_local = y_in1 + y_local
         y_local = self.norm1_local(y_local)
-        y_attn = y.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
-        if self.is_cross:
-            itp_y_attn = itp_y.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
-            y_attn = self.attn(y_attn.permute(0, 2, 1), itp_y_attn.permute(0, 2, 1)).permute(0, 2, 1)
-        else:
-            y_attn = self.attn(y_attn.permute(0, 2, 1)).permute(0, 2, 1)
-        y_attn = y_attn.reshape(B, L, channel, K).permute(0, 2, 3, 1).reshape(B, channel, K * L)
-        
-        y_attn = y_in1 + y_attn
-        y_attn = self.norm1_attn(y_attn)
 
-        y_in2 = y_local + y_attn
+        # Perform spatial attention operation
+        y_attn_s1 = y.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
+        y_attn_s = self.attn_s(y_attn_s1.permute(0, 2, 1)).permute(0, 2, 1)
+        y_attn_s = y_attn_s.reshape(B, L, channel, K).permute(0, 2, 3, 1).reshape(B, channel, K * L)
+        y_attn_s = y_in1 + y_attn_s
+        y_attn_s = self.norm1_attn_s(y_attn_s)
+
+        # Perform temporal attention operation
+        y_attn_t1 = y.reshape(B, channel, K, L).permute(0, 2, 1, 3).reshape(B * K, channel, L)
+        v = y_attn_t1.permute(2, 0, 1)
+        y_attn_t = self.attn_t(v, v, v).permute(1, 2, 0)
+        y_attn_t = y_attn_t.reshape(B, K, channel, L).permute(0, 2, 1, 3).reshape(B, channel, K * L)
+        y_attn_t = y_in1 + y_attn_t
+        y_attn_t = self.norm1_attn_t(y_attn_t)
+
+        # Combine results and pass through fully connected layers
+        y_in2 = y_local + y_attn_s + y_attn_t
         y = F.relu(self.ff_linear1(y_in2.permute(0, 2, 1)))
         y = self.ff_linear2(y).permute(0, 2, 1)
         y = y + y_in2
 
         y = self.norm2(y)
         return y
+
 
 
 class GuidanceConstruct(nn.Module):
