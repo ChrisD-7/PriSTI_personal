@@ -29,3 +29,5 @@ model:
   target_strategy: "hybrid"
   use_guide: true
   mask_sensor: []
+  target_dim: 6
+

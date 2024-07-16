@@ -199,6 +199,49 @@ class SpatialLearning(nn.Module):
         y = self.feature_layer(y, base_shape, support, itp_y)
         return y
 
+'''
+--------------------------------------------------------------------------------------------------------------
+Changes made to this to ensure that the dimenstionality of the input tensor is correct
+--------------------------------------------------------------------------------------------------------------
+class SpaDependLearning(nn.Module):
+    def __init__(self, channels, nheads, target_dim, order, include_self, device, is_adp, adj_file, proj_t, is_cross=True):
+        super().__init__()
+        self.is_cross = is_cross
+        self.GCN = AdaptiveGCN(channels, order=order, include_self=include_self, device=device, is_adp=is_adp, adj_file=adj_file)
+        self.attn = Attn_spa(dim=channels, seq_len=target_dim, k=proj_t, heads=nheads)
+        self.cond_proj = Conv1d_with_init(2 * channels, channels, 1)
+        self.norm1_local = nn.GroupNorm(4, channels)
+        self.norm1_attn = nn.GroupNorm(4, channels)
+        self.ff_linear1 = nn.Linear(channels, channels * 2)
+        self.ff_linear2 = nn.Linear(channels * 2, channels)
+        self.norm2 = nn.GroupNorm(4, channels)
+
+    def forward(self, y, base_shape, support, itp_y=None):
+        B, channel, K, L = base_shape
+        y_in1 = y
+
+        y_local = self.GCN(y, base_shape, support)       # [B, C, K*L]
+        y_local = y_in1 + y_local
+        y_local = self.norm1_local(y_local)
+        y_attn = y.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
+        if self.is_cross:
+            itp_y_attn = itp_y.reshape(B, channel, K, L).permute(0, 3, 1, 2).reshape(B * L, channel, K)
+            y_attn = self.attn(y_attn.permute(0, 2, 1), itp_y_attn.permute(0, 2, 1)).permute(0, 2, 1)
+        else:
+            y_attn = self.attn(y_attn.permute(0, 2, 1)).permute(0, 2, 1)
+        y_attn = y_attn.reshape(B, L, channel, K).permute(0, 2, 3, 1).reshape(B, channel, K * L)
+        
+        y_attn = y_in1 + y_attn
+        y_attn = self.norm1_attn(y_attn)
+
+        y_in2 = y_local + y_attn
+        y = F.relu(self.ff_linear1(y_in2.permute(0, 2, 1)))
+        y = self.ff_linear2(y).permute(0, 2, 1)
+        y = y + y_in2
+
+        y = self.norm2(y)
+        return y
+'''
 
 class SpaDependLearning(nn.Module):
     def __init__(self, channels, nheads, target_dim, order, include_self, device, is_adp, adj_file, proj_t, is_cross=True):
@@ -254,7 +297,6 @@ class SpaDependLearning(nn.Module):
 
         y = self.norm2(y)
         return y
-
 
 
 class GuidanceConstruct(nn.Module):
