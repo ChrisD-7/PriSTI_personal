@@ -45,7 +45,7 @@ def main(args):
         target_strategy=args.targetstrategy, mask_sensor=config["model"]["mask_sensor"]
     )
     model = PriSTI_aqi36(config, args.device).to(args.device)
-
+    
     if args.modelfolder == "":
         train(
             model,
@@ -55,7 +55,10 @@ def main(args):
             foldername=foldername,
         )
     else:
-        model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth", map_location=args.device))
+        # Load the model state dict, ignoring missing keys
+        checkpoint = torch.load("./save/" + args.modelfolder + "/model.pth", map_location=args.device)
+        model.load_state_dict(checkpoint, strict=False)
+        
 
     logging.basicConfig(filename=foldername + '/test_model.log', level=logging.DEBUG)
     logging.info("model_name={}".format(args.modelfolder))

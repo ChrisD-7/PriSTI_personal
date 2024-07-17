@@ -49,6 +49,9 @@ def get_similarity_AQI(dist, thr=0.1, include_self=False, force_symmetric=False,
         adj = sps.coo_matrix(adj)
     return adj
 
+'''
+just updated the path to just take the first 6 rows of the dataS
+'''
 
 def get_adj_AQI36():
     df = pd.read_csv("./data/pm25/SampleData/pm25_latlng.txt")
